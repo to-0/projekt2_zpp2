@@ -82,16 +82,127 @@ void vypis(FILM* zaciatok_f) {
 		akt = akt->dalsi;
 	}
 }
+FILM* pridaj(FILM* zac_f) { //prida na koniec zoznamu
+	FILM *akt_f = zac_f;
+	FILM* vloz_f = (FILM*)malloc(sizeof(FILM));
+	char buffer[500];
+	FILE* f = stdin;
+	if(fgets(buffer, 500, f) != NULL) { //precitam cely riadok do bufferu
+		strncpy(vloz_f->nazov, buffer, 100); 
+		vloz_f->nazov[strlen(vloz_f->nazov) - 1] = '\0';
+		fscanf(f, "%d", &vloz_f->rok_vyroby);
+		fscanf(f, "%s %s ", vloz_f->reziser.krstne,vloz_f->reziser.priezvisko); //nacitam meno a priezvisko rezisera
+		while (akt_f->dalsi != NULL) { //musim prejst az na koniec
+			akt_f = akt_f->dalsi;
+		}
+		vloz_f->herci = NULL;
+		vloz_f->dalsi = NULL;
+		akt_f->dalsi = vloz_f; //nastavim ukazovatel na novy film
+		akt_f = akt_f->dalsi; //posuniem sa na aktualne posledny film
+		//Idem riesit pridavanie hereckeho obsadenia
+		HEREC* akt_h;
+		akt_h = vloz_f->herci;//na zaciatku to bude NULL
+		while (fgets(buffer, 500, f) != NULL && buffer[0]!='*') { //citam hercov po riadkoch az pokial nenajdem *
+			HEREC* vloz_h = (HEREC*)malloc(sizeof(HEREC));
+			sscanf(buffer, " %s %s %d ", vloz_h->meno.krstne, vloz_h->meno.priezvisko, &vloz_h->rok);
+			vloz_h->dalsi=NULL;
+			if (akt_f->herci == NULL) { //ak citam prveho herca
+				akt_f->herci = vloz_h; //nastacim ukazovatel vo filme na prveho herca
+				akt_h = vloz_h; //aktualny herec je ten co som teraz vlozil
+			}
+			else { //ak uz tam je nejaky herec
+				akt_h->dalsi = vloz_h;  //
+				akt_h = akt_h->dalsi;
+			}
+			//printf("I am while loop with buffer: %s", buffer);
+		}
+		
+	}
+	return zac_f;
+}
+void vymaz(FILM** zac,char nazov[]) {
+	if (*zac == NULL) {
+		printf("Nie je co mazat\n");
+		return;
+	}
+	FILM* akt,*p;
+	akt = *zac;
+	if (!(strcmp((*zac)->nazov, nazov))) { //chcem vymazat prvy film, zmeni sa zaciatok
+		if (akt->dalsi != NULL) { //pokial to neni iba 1 prvkove
+			akt = akt->dalsi;
+			free(*zac);
+			*zac = akt;
+		}
+		else {
+			free(*zac);
+			*zac = NULL;
+		}
+	}
+	while (akt != NULL && (strcmp(akt->nazov, nazov))) { //prechadzam pokial nenajdem ten aktualny
+		p = akt; //pred aktualnym
+		akt = akt->dalsi;
+	}
+	p->dalsi = akt->dalsi;
+	free(akt);
+
+}
+void ukonci(FILM** zac_f) {
+	FILM *akt_f = *zac_f;
+	HEREC *akt_h;
+	HEREC* p_h;
+	FILM* p;
+	if (*zac_f == NULL) {
+		return;
+	}
+	while (akt_f != NULL) {
+		p = akt_f; //pomocna premenna tuto pomocou nej budeme uvolnovat pamat
+		akt_h = akt_f->herci;
+		while (akt_h != NULL) {
+			p_h= akt_h;
+			akt_h = akt_h->dalsi;
+			free(p_h); //postupne mazem vzdy toho predosleho herca az kym dojdem na koniec
+		}
+		//teraz mozem vymazat aj film a posunut sa na dalsi
+		akt_f = akt_f->dalsi;
+		free(p);
+	}
+	
+}
 int main()
 {
-	FILE* f;
+	FILE* f, *k=stdin;
 	FILM* zaciatok_filmov=NULL;
+
 	f = fopen("filmy.txt", "r");
 	if (f == NULL) {
 		printf("Subor sa nepodarilo otvorit\n");
 		return -1;
 	}
+	char prikaz[100];
+	while (fgets(prikaz, 100, k) != NULL) { //CITAM Z KONZOLY CIZE K
+		prikaz[strlen(prikaz) - 1] = '\0';//musim odstranit \n z konca...
+		if (!strcmp(prikaz, "nacitaj"))
+			zaciatok_filmov = nacitaj(zaciatok_filmov, f);
+		if (!strcmp(prikaz, "vypis"))
+			vypis(zaciatok_filmov);
+		if (!strcmp(prikaz, "pridaj"))
+			zaciatok_filmov = pridaj(zaciatok_filmov);
+		if (!strcmp(prikaz, "vymaz")) {
+			char nazov[100];
+			fgets(nazov, 100, k);
+			vymaz(&zaciatok_filmov,nazov);
+		}
+		if (!strcmp(prikaz, "koniec")) {
+			ukonci(&zaciatok_filmov);
+			return 1;
+		}
+			
+			
+		
+	}
 	zaciatok_filmov = nacitaj(zaciatok_filmov, f);
+	vypis(zaciatok_filmov);
+	zaciatok_filmov = pridaj(zaciatok_filmov);
 	vypis(zaciatok_filmov);
 
 }
