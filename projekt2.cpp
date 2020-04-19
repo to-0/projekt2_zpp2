@@ -142,8 +142,14 @@ void vymaz(FILM** zac,char nazov[]) {
 		p = akt; //pred aktualnym
 		akt = akt->dalsi;
 	}
-	p->dalsi = akt->dalsi;
-	free(akt);
+	if (akt!=NULL && !(strcmp(akt->nazov, nazov))) {
+		p->dalsi = akt->dalsi;
+		free(akt);
+	}
+	else {
+		printf("Film sa nenasiel\n");
+	}
+	
 
 }
 void ukonci(FILM** zac_f) {
@@ -168,6 +174,76 @@ void ukonci(FILM** zac_f) {
 	}
 	
 }
+void filmy(FILM* zaciatok_f, char krstne[], char priezvisko[]) { // vypise vsetky filmy v ktorom hra herec
+	FILM* akt = zaciatok_f;
+	if (zaciatok_f == NULL) {
+		printf("Prazdne filmy\n");
+		return;
+	}
+	while (akt != NULL) { //idem cez vsetky filmy
+		HEREC* akt_h = akt->herci;
+		while (akt_h != NULL) { //idem cez vsetkych hercov filmu pokial nenajdem zhodu alebo pokial neprejdem na koniec
+			if (!strcmp(akt_h->meno.krstne, krstne) && (!strcmp(akt_h->meno.priezvisko, priezvisko))) { //ak som nasiel toho herca idem vypisat film
+				printf("%s\n", akt->nazov);
+				break;
+			}
+			akt_h = akt_h->dalsi; //posuvam sa po hercoch
+		}
+		akt = akt->dalsi;
+	}
+}
+int najdi_dvojicu(HEREC* h1, HEREC* h2) { //pomocna funkcia, skontroluje ci sa herec2 nachadza niekde v zozname hercov1
+	while (h1 != NULL) {
+		if (!strcmp(h2->meno.krstne, h1->meno.krstne) && !strcmp(h2->meno.priezvisko, h1->meno.priezvisko)) { //ak sa mena rovnaju
+			return 1;
+		}
+		h1 = h1->dalsi;
+	}
+	return 0; //nenachadza
+}
+
+void herci(FILM* zac, char film1[], char film2[]) { //vypise hercov ktori hrali v oboch filmoch, bez opakovania, v poradi v akom su ulozeni
+	if (zac == NULL) {
+		printf("Prazdny zoznam filmov=n");
+		return;
+	}
+	int nasiel_f1 = 0, nasiel_f2 = 0; //pomocna premenna, zaznacim si ci film1 alebo film2 vobec existuje
+	FILM* f1=NULL,*f2=NULL; //f1 ukazuje na prvy film co najdem a f2 na druhy film co najdem
+	while (zac != NULL) {
+		if (!strcmp(film1, zac->nazov)) {
+			f1 = zac;
+		}
+		if (!strcmp(film2, zac->nazov)) {
+			f2 = zac;
+		}
+		zac = zac->dalsi;
+	}
+	if (f1 == NULL || f2 == NULL) {
+		printf("Dvojica filmov nebola najdena\n");
+		return;
+	}
+	HEREC* h1 = f1->herci, * h2 = f2->herci;
+	if (h1 == NULL && h2 == NULL) {
+		printf("Oba filmy nemaju hercov\n");
+		return;
+	}
+	int k = 1; //pomocna premenna ci sa rovnaju 2 mena
+	HEREC* pom = h1;//ukazujem na zaciatok hercov z druheho filmu
+	while (h1 != NULL) {
+		printf("%s %s (%d)", h1->meno.krstne, h1->meno.priezvisko, h1->rok);
+		h1 = h1->dalsi;
+		if (h1 != NULL || h2 != NULL) putchar(','); //ak bude pokracovat aspon jeden herec tak este napisem ciarku
+	}
+	h1 = pom; //znova nastavim h1 na prveho herca
+	while (h2 != NULL) { //idem prechadzat hercov z oboch filmov, ak skoncim na jednom z nich tak uz nema zmysel dalej hladat
+		if (!najdi_dvojicu(h1,h2)) { //nenasiel som rovnakeho herca vo filme 1
+			printf("%s %s (%d)", h2->meno.krstne, h2->meno.priezvisko, h2->rok);
+			if (h2->dalsi != NULL && !najdi_dvojicu(h1, h2->dalsi)) putchar(','); //ak dalsi herec nebude 0 a zaroven sa nebude dalsi herec rovnat nejakemu z prveho filmu mozem napisat,
+		}
+		h2 = h2->dalsi;
+	}
+}
+
 int main()
 {
 	FILE* f, *k=stdin;
@@ -187,15 +263,33 @@ int main()
 			vypis(zaciatok_filmov);
 		if (!strcmp(prikaz, "pridaj"))
 			zaciatok_filmov = pridaj(zaciatok_filmov);
+		if (!strcmp(prikaz, "filmy")) {
+			char krstne[100];
+			char priezvisko[100];
+			if (scanf("%s %s", krstne, priezvisko) == 2)
+				filmy(zaciatok_filmov, krstne, priezvisko);
+		}
+		if (!strcmp(prikaz, "herci")) {
+			char film1[100];
+			char film2[100];
+			if (fgets(film1, 100, stdin) != NULL && fgets(film2, 100, stdin)) {
+				film1[strlen(film1) - 1] = '\0'; //lebo inac by bol posledny char \n
+				film2[strlen(film2) - 1] = '\0';
+				herci(zaciatok_filmov, film1, film2);
+			}
+				
+		}
 		if (!strcmp(prikaz, "vymaz")) {
 			char nazov[100];
 			fgets(nazov, 100, k);
+			nazov[strlen(nazov) - 1] = '\0';
 			vymaz(&zaciatok_filmov,nazov);
 		}
 		if (!strcmp(prikaz, "koniec")) {
 			ukonci(&zaciatok_filmov);
 			return 1;
 		}
+
 			
 			
 		
