@@ -243,6 +243,106 @@ void herci(FILM* zac, char film1[], char film2[]) { //vypise hercov ktori hrali 
 		h2 = h2->dalsi;
 	}
 }
+//ODTIALTO FUNKCIE IBA PRE MOZNOST ROK
+FILM* najdi_film_rok(FILM* zac_f, int rok) { //pomocna funkcia na najdenie filmu v danom roku, tuto funkciu budem postupne volat pricom sa bude jej argument
+	while (zac_f != NULL) {
+		if (zac_f->rok_vyroby == rok)
+			return zac_f;//vratim zaciatok filmu
+		zac_f = zac_f->dalsi;
+	}
+	return NULL;
+}
+HEREC *pridaj_herca_zoradene(HEREC *zac,HEREC *herec){ //prida herca tak aby bol zoznam stale zoradeny
+    HEREC *akt=zac;
+    HEREC *pom=akt;
+	HEREC* vloz = (HEREC*)malloc(sizeof(HEREC));
+	vloz->rok = herec->rok;
+	strncpy(vloz->meno.krstne, herec->meno.krstne, 100);
+	strncpy(vloz->meno.priezvisko, herec->meno.priezvisko, 100);
+	vloz->dalsi = NULL;
+    int men=0; //pomocna premenna ci idem menit
+	if (zac == NULL) return vloz;
+    if(strcmp(zac->meno.krstne,vloz->meno.krstne)>1){ // musime ho vlozit na zaciatok
+        men=1;
+    }
+    //ak sa ich krstne mena rovnaju musime skontrolovat priezvisko
+    else if(!strcmp(zac->meno.krstne,vloz->meno.krstne) && strcmp(zac->meno.priezvisko,vloz->meno.priezvisko)>1){
+        men=1;
+    }
+    //ak sa aj priezvisko rovna kontrolujeme rok
+    else if(!strcmp(zac->meno.krstne,vloz->meno.krstne) && !strcmp(zac->meno.priezvisko,vloz->meno.priezvisko) &&zac->rok>vloz->rok){
+        men = 1;
+    }
+    if(men){
+    pom=zac;
+    zac=vloz;
+    vloz->dalsi = pom;
+    return zac;
+    }
+    //nemusime menit zaciatok ideme dalej
+    pom=akt; //pom bude teraz predosly v podstate
+    while(akt!=NULL){ 
+        if(strcmp(akt->meno.krstne,vloz->meno.krstne)>1) // krstne meno herca, ktoreho vkladame je skor v abecede
+            men=1;
+        else if(!strcmp(zac->meno.krstne,vloz->meno.krstne) && strcmp(zac->meno.priezvisko,vloz->meno.priezvisko)>1)
+            men=1;
+        //ak sa aj priezvisko rovna kontrolujeme rok
+        else if(!strcmp(zac->meno.krstne,vloz->meno.krstne) && !strcmp(zac->meno.priezvisko,vloz->meno.priezvisko) &&
+        zac->rok>vloz->rok)
+            men = 1;
+        if(men){
+            pom->dalsi = vloz;
+			vloz ->dalsi = akt;
+            return zac;
+        }
+        pom = akt;
+        akt = akt->dalsi;
+    }
+	//ak ma ist tento herec na koniec
+	akt = vloz;
+	return zac;
+}
+void vypis_hercov(HEREC *zac){
+    if (zac==NULL) return;
+    while(zac!=NULL){
+        printf("%s %s (%d)",zac->meno.krstne, zac->meno.priezvisko, zac->rok);
+        if(zac->dalsi!=NULL) printf(", ");
+		zac = zac->dalsi;
+    }
+    putchar('\n');
+}
+void uvolni_zoznam_hercov(HEREC *zac){
+    if (zac==NULL) return;
+	HEREC* pom=zac;
+    while(zac!=NULL){
+        pom = zac;
+        zac = zac->dalsi;
+        free(pom);
+    }
+}
+void rok(FILM* zac_f, int rok) { //vypise zoznam hercov ktori hrali vo filmoch v danom roku, zoradene abecedne a neopakuju sa
+	HEREC* zac_zh = NULL; //zaciatok zoznamu hercov
+	HEREC *vloz_h= (HEREC *)malloc(sizeof(HEREC)); //inicializujem prvy prvok zoznamu hercov
+	FILM* akt = najdi_film_rok(zac_f, rok); //najdem prvy film
+	if (akt == NULL) {
+		printf("Neexistuje film z daneho roku");
+		return;
+	}
+	while(akt!=NULL){ //idem cez zoznam vsetkych filmov
+	    HEREC *akt_h=akt->herci;
+	    if (akt_h==NULL) //ak tu neni ziadny iny herec tak idem najst dalsi film z toho roku
+	        akt = najdi_film_rok(akt->dalsi,rok);
+		//vloz_h = akt_h iba spravilo ze vloz_h ukazoval na aktualneho herca;
+		 //nastavim vzdy ze neukazuje este nikam tento herec
+	    while(akt_h!=NULL) { //pokial nie som na konci hercov
+           zac_zh = pridaj_herca_zoradene(zac_zh, akt_h); //pridam herca do zoznamu
+           akt_h = akt_h->dalsi;
+        }
+		akt = najdi_film_rok(akt->dalsi, rok);
+	}
+	//tu by som mal mat teda zoznam vsetkych hercov
+	vypis_hercov(zac_zh);
+}
 
 int main()
 {
@@ -285,18 +385,20 @@ int main()
 			nazov[strlen(nazov) - 1] = '\0';
 			vymaz(&zaciatok_filmov,nazov);
 		}
+		if (!strcmp(prikaz, "rok")) {
+			char buffer[100];
+			fgets(buffer, 100, stdin);
+			int n;
+			sscanf(buffer, "%d", &n);
+			rok(zaciatok_filmov, n);
+		}
 		if (!strcmp(prikaz, "koniec")) {
 			ukonci(&zaciatok_filmov);
 			return 1;
 		}
-
-			
-			
-		
 	}
 	zaciatok_filmov = nacitaj(zaciatok_filmov, f);
 	vypis(zaciatok_filmov);
 	zaciatok_filmov = pridaj(zaciatok_filmov);
 	vypis(zaciatok_filmov);
-
 }
