@@ -263,11 +263,14 @@ HEREC *pridaj_herca_zoradene(HEREC *zac,HEREC *herec){ //prida herca tak aby bol
 	vloz->dalsi = NULL; //nastavim mu pointer na dalsieho na null
     int men=0; //pomocna premenna ci idem menit
 	if (zac == NULL) return vloz; //ak zaciatok zoznamu hercov je null, vlozim ho na zaciatok
-    if(strcmp(zac->meno.krstne,vloz->meno.krstne)>0){ // musime ho vlozit na zaciatok a zaciatok posunut o 1
+	//ak je to rovnaky herec, ktory sa vyskytuje v tom zozname
+	if (!strcmp(zac->meno.priezvisko, vloz->meno.priezvisko) && !strcmp(zac->meno.krstne, vloz->meno.krstne) && zac->rok == vloz->rok)
+		return zac;
+    if(strcmp(zac->meno.priezvisko,vloz->meno.priezvisko)>0){ // musime ho vlozit na zaciatok a zaciatok posunut o 1
         men=1;
     }
     //ak sa ich krstne mena rovnaju musime skontrolovat priezvisko
-    else if(!strcmp(zac->meno.krstne,vloz->meno.krstne) && strcmp(zac->meno.priezvisko,vloz->meno.priezvisko)>0){
+    else if(!strcmp(zac->meno.priezvisko,vloz->meno.priezvisko) && strcmp(zac->meno.krstne,vloz->meno.krstne)>0){
         men=1;
     }
     //ak sa aj priezvisko rovna kontrolujeme rok
@@ -282,25 +285,27 @@ HEREC *pridaj_herca_zoradene(HEREC *zac,HEREC *herec){ //prida herca tak aby bol
     }
     //nemusime menit zaciatok ideme dalej
     pom=zac; 
-    while(akt!=NULL){ 
-		if (strcmp(akt->meno.krstne, vloz->meno.krstne) > 0) // krstne meno herca, ktoreho vkladame je skor v abecede
+    while(akt->dalsi!=NULL){
+		//ak sa rovnaju uplne ze je to ten isty herec iba vyskocim hned
+		if (!strcmp(akt->dalsi->meno.priezvisko, vloz->meno.priezvisko) && !strcmp(akt->dalsi->meno.krstne, vloz->meno.krstne) && akt->dalsi->rok == vloz->rok)
+			return zac;
+		if (strcmp(akt->dalsi->meno.priezvisko, vloz->meno.priezvisko) > 0) // krstne meno herca, ktoreho vkladame je skor v abecede
 			men = 1;
-		else if (!strcmp(zac->meno.krstne, vloz->meno.krstne) && strcmp(zac->meno.priezvisko, vloz->meno.priezvisko) > 0) 
+		else if (!strcmp(akt->dalsi->meno.priezvisko, vloz->meno.priezvisko) && strcmp(akt->dalsi->meno.krstne, vloz->meno.krstne) > 0)
 			men = 1;
         //ak sa aj priezvisko rovna kontrolujeme rok
-		else if (!strcmp(zac->meno.krstne, vloz->meno.krstne) && !strcmp(zac->meno.priezvisko, vloz->meno.priezvisko) &&
-			zac->rok > vloz->rok) 
+		else if (!strcmp(akt->dalsi->meno.krstne, vloz->meno.krstne) && !strcmp(akt->dalsi->meno.priezvisko, vloz->meno.priezvisko) &&
+			akt->dalsi->rok > vloz->rok)
 			men = 1;
         if(men){ //idem ho vlozit niekde vo vnutri zoznamu
-            pom->dalsi = vloz; //pom je predosly prvok pred aktualnym, jeho pointer na dalsi prenastavim na vloz
-			vloz ->dalsi = akt; //a pointer na vloz->dalsi dam na aktualneho
+			vloz->dalsi = akt->dalsi;
+			akt->dalsi = vloz;
             return zac; //vratim zaciatok zoznamu
         }
-		pom = akt;
         akt = akt->dalsi;
     }
 	//ak ma ist tento herec na koniec
-	pom->dalsi = vloz;
+	akt->dalsi = vloz;
 	//akt->dalsi = vloz;
 	return zac;
 }
