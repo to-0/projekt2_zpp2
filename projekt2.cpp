@@ -185,7 +185,7 @@ void filmy(FILM* zaciatok_f, char krstne[], char priezvisko[]) { // vypise vsetk
 		HEREC* akt_h = akt->herci;
 		while (akt_h != NULL) { //idem cez vsetkych hercov filmu pokial nenajdem zhodu alebo pokial neprejdem na koniec
 			if (!strcmp(akt_h->meno.krstne, krstne) && (!strcmp(akt_h->meno.priezvisko, priezvisko))) { //ak som nasiel toho herca idem vypisat film
-				printf("%s\n", akt->nazov);
+				printf("%s (%d)\n", akt->nazov,akt->rok_vyroby);
 				break;
 			}
 			akt_h = akt_h->dalsi; //posuvam sa po hercoch
@@ -193,7 +193,7 @@ void filmy(FILM* zaciatok_f, char krstne[], char priezvisko[]) { // vypise vsetk
 		akt = akt->dalsi;
 	}
 }
-int najdi_dvojicu(HEREC* h1, HEREC* h2) { //pomocna funkcia, skontroluje ci sa herec2 nachadza niekde v zozname hercov1
+int najdi_dvojicu(HEREC* h1, HEREC* h2) { //pomocna funkcia, skontroluje ci sa herec h2 nachadza niekde v zozname hercov1 h1
 	while (h1 != NULL) {
 		if (!strcmp(h2->meno.krstne, h1->meno.krstne) && !strcmp(h2->meno.priezvisko, h1->meno.priezvisko)) { //ak sa mena rovnaju
 			return 1;
@@ -205,7 +205,7 @@ int najdi_dvojicu(HEREC* h1, HEREC* h2) { //pomocna funkcia, skontroluje ci sa h
 
 void herci(FILM* zac, char film1[], char film2[]) { //vypise hercov ktori hrali v oboch filmoch, bez opakovania, v poradi v akom su ulozeni
 	if (zac == NULL) {
-		printf("Prazdny zoznam filmov=n");
+		printf("Prazdny zoznam filmov\n");
 		return;
 	}
 	int nasiel_f1 = 0, nasiel_f2 = 0; //pomocna premenna, zaznacim si ci film1 alebo film2 vobec existuje
@@ -229,20 +229,15 @@ void herci(FILM* zac, char film1[], char film2[]) { //vypise hercov ktori hrali 
 		return;
 	}
 	int k = 1; //pomocna premenna ci sa rovnaju 2 mena
-	HEREC* pom = h1;//ukazujem na zaciatok hercov z druheho filmu
+	HEREC* pom = h1;//ukazujem na zaciatok hercov z prveho filmu
 	while (h1 != NULL) {
-		printf("%s %s (%d)", h1->meno.krstne, h1->meno.priezvisko, h1->rok);
-		h1 = h1->dalsi;
-		if (h1 != NULL || h2 != NULL) putchar(','); //ak bude pokracovat aspon jeden herec tak este napisem ciarku
-	}
-	h1 = pom; //znova nastavim h1 na prveho herca
-	while (h2 != NULL) { //idem prechadzat hercov z oboch filmov, ak skoncim na jednom z nich tak uz nema zmysel dalej hladat
-		if (!najdi_dvojicu(h1,h2)) { //nenasiel som rovnakeho herca vo filme 1
-			printf("%s %s (%d)", h2->meno.krstne, h2->meno.priezvisko, h2->rok);
-			if (h2->dalsi != NULL && !najdi_dvojicu(h1, h2->dalsi)) putchar(','); //ak dalsi herec nebude 0 a zaroven sa nebude dalsi herec rovnat nejakemu z prveho filmu mozem napisat,
+		if (najdi_dvojicu(h2, h1)) {
+			printf("%s %s (%d)", h1->meno.krstne, h1->meno.priezvisko, h1->rok);
+			if (h1->dalsi != NULL && najdi_dvojicu(h2, h1->dalsi)) putchar(',');
 		}
-		h2 = h2->dalsi;
+		h1 = h1->dalsi;
 	}
+	putchar('\n');
 }
 //ODTIALTO FUNKCIE IBA PRE MOZNOST ROK
 FILM* najdi_film_rok(FILM* zac_f, int rok) { //pomocna funkcia na najdenie filmu v danom roku, tuto funkciu budem postupne volat pricom sa bude jej argument
@@ -264,7 +259,7 @@ HEREC *pridaj_herca_zoradene(HEREC *zac,HEREC *herec){ //prida herca tak aby bol
     int men=0; //pomocna premenna ci idem menit
 	if (zac == NULL) return vloz; //ak zaciatok zoznamu hercov je null, vlozim ho na zaciatok
 	//ak je to rovnaky herec, ktory sa vyskytuje v tom zozname
-	if (!strcmp(zac->meno.priezvisko, vloz->meno.priezvisko) && !strcmp(zac->meno.krstne, vloz->meno.krstne) && zac->rok == vloz->rok)
+	if (!strcmp(zac->meno.priezvisko, vloz->meno.priezvisko) && !strcmp(zac->meno.krstne, vloz->meno.krstne) && zac->rok == vloz->rok) //ak je ten herec uz na zaciatku
 		return zac;
     if(strcmp(zac->meno.priezvisko,vloz->meno.priezvisko)>0){ // musime ho vlozit na zaciatok a zaciatok posunut o 1
         men=1;
@@ -330,12 +325,12 @@ void uvolni_zoznam_hercov(HEREC *zac){
 void rok(FILM* zac_f, int rok) { //vypise zoznam hercov ktori hrali vo filmoch v danom roku, zoradene abecedne a neopakuju sa
 	HEREC* zac_zh = NULL; //zaciatok zoznamu hercov
 	HEREC *vloz_h= (HEREC *)malloc(sizeof(HEREC)); //inicializujem prvy prvok zoznamu hercov
-	FILM* akt = najdi_film_rok(zac_f, rok); //najdem prvy film
+	FILM* akt = najdi_film_rok(zac_f, rok); //najdem prvy film z roku
 	if (akt == NULL) {
 		printf("Neexistuje film z daneho roku");
 		return;
 	}
-	while(akt!=NULL){ //idem cez zoznam vsetkych filmov
+	while(akt!=NULL){ //idem prehladavat vsetky filmy z daneho roku z daneho roku
 	    HEREC *akt_h=akt->herci; //prvy herec z filmu
 	    if (akt_h==NULL) //ak tu neni ziadny herec tak idem najst dalsi film z toho roku
 	        akt = najdi_film_rok(akt->dalsi,rok); //vrati mi ukazovatel na film z daneho roku
